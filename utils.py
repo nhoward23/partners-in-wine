@@ -15,7 +15,7 @@ def write_table(header, table, filename):
             writer.writerow(row)
 
 def read_table(filename):
-    table = [] 
+    table = []
     
     with open(filename) as csv_file: 
         reader = csv.reader(csv_file, delimiter=';')
