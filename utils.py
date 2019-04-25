@@ -3,6 +3,7 @@
 import csv
 import tabulate
 import numpy 
+import math
 
 def write_table(header, table, filename):
     with open(filename, mode='w') as csv_file:
@@ -123,5 +124,11 @@ def classify_instance(value, rating, cutoffs):
     for i, cutoff in enumerate(cutoffs): 
         if value <= cutoff:
             return rating[i]
+
+def compute_distance(v1, v2):
+    """computes the distance between v1 and v2 using Eucildean distance"""
+    assert(len(v1) == len(v2))
+    dist = math.sqrt(sum([(v1[i] - v2[i]) ** 2 for i in range(len(v1))]))
+    return dist
 
     
