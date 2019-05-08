@@ -137,6 +137,9 @@ def random_subsampling(k, table, class_index, predictive_indicies):
 
         # classify the test set by using naive bayes
         naive_predictions, naive_actuals = guassian_naive_bayes(train_set, test_set, class_index, predictive_indicies)
+        #print("predictions", naive_predictions)
+        #print("actuals", naive_actuals)
+
 
         # compute the accuracy of predictions for naive bayes
         naive_accuracy = compute_accuracy(train_set, class_index, naive_predictions, naive_actuals)
@@ -204,43 +207,14 @@ def compute_accuracy(table, index, predicted, actual):
             pass
         else: 
             # compute the accuracy - TP + TN / P + N, and add it to list 
+            # print("true pos", true_pos)
+            # print("true neg", true_neg)
+            # print("p+n", len(predicted))
             accuracy = (true_pos + true_neg) / len(predicted)
             accuracies.append(accuracy)
             
     # get the average of accuracies
+    print('accuracies', accuracies)
     avg_accuracy = sum(accuracies)/len(accuracies)
+    print('avg acc', avg_accuracy)
     return avg_accuracy
-
-
-
-table = utils.read_table('red_wine_quality.csv')
-header = table[0]
-table = table[1:]
-
-# lets just test with first two
-indices = [0,3,5,6]
-
-# random sample
-random_instance = table[1:2]
-
-print(header.index("quality"))
-
-predicted, actual = guassian_naive_bayes(table, random_instance, header.index("quality"), indices)
-
-
-random_indices, random_instances = get_random_sample(table, 5)
-
-
-predicted, actual = guassian_naive_bayes(table, random_instances, header.index("quality"), indices)
-
-print("predicted", predicted)
-print("actual", actual)
-
-# STEP 3 from PA4: Random SubSampling 
-random_avg_accuracy, random_stderr = random_subsampling(5, table, header.index("quality"), indices)
-print("=" * 76)
-print("STEP 3: Predictive Accuracy of Naive Bayes with Guassian")
-print("=" * 76)
-print("Random Subsample (k=10, 2:1 Train/Test)")
-print("Naive Bayes: accuracy = %0.2f, error rate = %0.2f" %(random_avg_accuracy, random_stderr))
-print()

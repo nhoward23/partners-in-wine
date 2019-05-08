@@ -116,7 +116,81 @@ def objective_function(table, cluster_table, centroids):
         total_cluster_score += sum(distances)
     print(total_cluster_score)
     return total_cluster_score
+
     
+def find_best_cluster(table, minimum, maximum):
+    objective_scores = []
+    x_axis = []
+    for i in range(minimum, maximum+1):
+        print(i)
+        score, cluster_table, centroids = k_means_clustering(i, table)
+        objective_scores.append(score)
+        x_axis.append(i)
+    
+    plt.figure()
+    plt.plot(x_axis, objective_scores)
+    plt.show()
+
+def compute_holdout_partitions(table):
+    """Randomizes table and does a 1/3 split"""
+    randomized = table[:] # shallow copy
+    n = len(randomized)
+    for i in range(n):
+        # generate a random index to swap with i
+        rand_index = random.randrange(0, n) # [0, n)
+        # task: do the swap
+        randomized[i], randomized[rand_index] = randomized[rand_index], randomized[i]
+
+    # compute the split index
+    split_index = int(2 / 3 * n)
+    train_set = randomized[:split_index]
+    test_set = randomized[split_index:]
+    return train_set, test_set
+
+def compute_accuracy(table, index, predicted, actual):
+    """Computes the accuracy of predicted versus actual by taking the accuracy of each class and getting the
+    average of these accuracies."""
+    # list of accuracies 
+    accuracies = []
+
+    # get the classes 
+    classes = list(set(utils.get_column(table, index)))
+
+    # For each class, determine the accuracy
+    for label in classes: 
+    
+        true_pos = 0 
+        false_pos = 0
+        false_neg = 0
+        true_neg = 0
+
+        # do the confusion matrix
+        for i in range(len(predicted)):
+            # when actual is 1 and predict is 1 - TP
+            if actual[i] == label and predicted[i] == label: 
+                true_pos += 1
+            # when actual is not 1 and predicted is 1 - FP
+            elif actual[i] != label and predicted[i] == label: 
+                false_pos += 1
+            # when actual is 1 and predicted is not 1 - FN
+            elif actual[i] == label and predicted[i] != label:
+                false_neg += 1
+            # when actual is not 1 and predicted is not 1 - TN
+            elif actual[i] != label and predicted != label: 
+                true_neg += 1
+
+        # see if it is an empty label (class isn't in the actual)s
+        if label not in actual:
+            pass
+        else: 
+            # compute the accuracy - TP + TN / P + N, and add it to list 
+            accuracy = (true_pos + true_neg) / len(predicted)
+            accuracies.append(accuracy)
+            
+    # get the average of accuracies
+    avg_accuracy = sum(accuracies)/len(accuracies)
+    return avg_accuracy
+
 def majority_voting(cluster, classification_index):
     # get the frequency of the classfication index
     values, counts = utils.get_frequencies(cluster, classification_index)
@@ -137,19 +211,65 @@ def predict(random_instance, centroids, clusters, classification_index):
     majority_classification = majority_voting(clusters[cluster_index], classification_index)
     print("Random Instance: ", random_instance)
     print("Majority Classification: ", majority_classification)
-    
-def find_best_cluster(table, minimum, maximum):
-    objective_scores = []
-    x_axis = []
-    for i in range(minimum, maximum+1):
-        print(i)
-        score, cluster_table, centroids = k_means_clustering(i, table)
-        objective_scores.append(score)
-        x_axis.append(i)
-    
-    plt.figure()
-    plt.plot(x_axis, objective_scores)
-    plt.show()
+    return majority_classification
+
+def k_means_classifier(train_set, test_set, class_index, centroids, clusters):
+
+    # classify each instance in test set and create parallel array of predictions and actuals
+    predicted = []
+    actual = [] 
+    for instance in test_set:
+        classification = predict(instance, centroids, clusters, class_index)
+        predicted.append(classification)
+        actual.append(instance[class_index])
+
+    return predicted, actual
+
+def random_subsampling(k, table, class_index, centroids, clusters):
+    """Uses random subsampling k times to predict instances"""
+    naive_accuracies = []
+
+    # for k times, randomize table and compute holdouts and classify with naive bayes
+    for _ in range(k):
+        # make a copy of the table to perform subsampling on so to not change the orginal table too much
+        table_copy = copy.deepcopy(table)
+
+        # randomize the table_copy and split 2:1
+        train_set, test_set = compute_holdout_partitions(table_copy)
+
+        # compute new cluster for each train set
+        score, distances_table, centroids = k_means_clustering(6, train_set)
+        # create a cluster table
+        cluster_table = copy.deepcopy(train_set)
+        for i, row in enumerate(cluster_table):
+            cluster_table[i].append(distances_table[i][-1])
+        # group by cluster 
+        group_names, groups = utils.group_by(cluster_table, len(cluster_table[0])-1)
+        print(groups)
+
+        # classify the test set by using naive bayes
+        naive_predictions, naive_actuals = k_means_classifier(train_set, test_set, class_index, centroids, clusters)
+        print(naive_predictions)
+        print(naive_accuracies)
+
+        # compute the accuracy of predictions for naive bayes
+        naive_accuracy = compute_accuracy(train_set, class_index, naive_predictions, naive_actuals)
+        
+        # add accuacies to the lists keeping track of accuracies for regression and knn
+        naive_accuracies.append(naive_accuracy)
+
+    # now get the average accuracies for both classifiers
+    avg_naive_acc = sum(naive_accuracies)/len(naive_accuracies)
+
+    # get the standard error
+    naive_std_err = 1 - avg_naive_acc
+    return avg_naive_acc, naive_std_err
+
+
+# table = utils.read_table('red_wine_quality.csv')
+# header = table[0]
+# table = table[1:]
+
         
 # find_best_cluster(table, 3, 10)
 #From plotting these objective functions scores, it appears that k=6 is an appropriate value.
@@ -188,4 +308,25 @@ def find_best_cluster(table, minimum, maximum):
     # free sulfur dioxide is the same, less is higher quality
     # higher fixed acidity
 
-    
+
+# table = utils.read_table('red_wine_quality.csv')
+# header = table[0]
+# table = table[1:]
+# # cluster the dataset to form 6 groups 
+# score, distances_table, centroids = k_means_clustering(6, table)
+
+# # create a cluster table
+# cluster_table = copy.deepcopy(table)
+# for i, row in enumerate(cluster_table):
+#     cluster_table[i].append(distances_table[i][-1])
+
+# # group by cluster 
+# group_names, groups = utils.group_by(cluster_table, len(cluster_table[0])-1)
+
+
+# random_avg_accuracy, random_stderr = random_subsampling(5, table, header.index("quality"), centroids, groups)
+# print("=" * 76)
+# print("Predictive Accuracy of K-Means Clustering with Random Subsampling")
+# print("=" * 76)
+# print("Accuracy = %0.2f, error rate = %0.2f" %(random_avg_accuracy, random_stderr))
+# print()
