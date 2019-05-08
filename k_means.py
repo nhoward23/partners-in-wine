@@ -5,10 +5,6 @@ import numpy
 import matplotlib.pyplot as plt
 import utils
 
-# table = utils.read_table('red_wine_quality.csv')
-# header = table[0]
-# table = table[1:]
-
 def compute_distance(v1, v2):
     """computes the distance between v1 and v2 using Eucildean distance. Does not include the classification attribute."""
     #assert(len(v1) == len(v2))
@@ -191,3 +187,5 @@ def find_best_cluster(table, minimum, maximum):
     # total sulfur dioxide varies between each, appears lower the better
     # free sulfur dioxide is the same, less is higher quality
     # higher fixed acidity
+
+    
