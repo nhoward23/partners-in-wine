@@ -131,4 +131,74 @@ def compute_distance(v1, v2):
     dist = math.sqrt(sum([(v1[i] - v2[i]) ** 2 for i in range(len(v1))]))
     return dist
 
+def normalize_instances(tablename, attribute_indices):
+    #normalizes all the attributes of each index you pass in
+    pre_normalization = [[] for x in attribute_indices]
+    post_normalize = []
+    table = [[] for row in tablename]
+
+    for instance in tablename:
+        for index, attribute in enumerate(attribute_indices):
+            pre_normalization[index].append(float(instance[attribute]))
+
+    for row in pre_normalization:
+        row = normalize(row)
+        post_normalize.append(row)
+
+    for row in post_normalize:
+        for index, item in enumerate(row):
+            table[index].append(item)
+
+    return table
+
+def normalize(single_attribute_values):
+    #normalizes a list of values all of the same type of attribute
+    normalized = []
+    for x in single_attribute_values:
+        x = (x-min(single_attribute_values)) / ((max(single_attribute_values) - min(single_attribute_values)) * 1.0)
+        normalized.append(x)
+    return normalized
+    
+def knn_random_subsampling(tablename, attribute_indices, prediction_index, k):
+    prediction_index_values = []
+    actuals = []
+    classes = []
+    training = utils.normalize_instances(tablename, attribute_indices)
+    print("===========================================")
+    print("STEP 2: k=5 Nearest Neighbor MPG Classifier")
+    print("===========================================")
+    for instance in tablename:
+        prediction_index_values.append(int(instance[prediction_index]))
+    for index, row in enumerate(training):
+        row.append(prediction_index_values[index])
+    for i in range(5):
+        random_index = random.randint(0, len(tablename)-1)
+        random_instance = tablename[random_index]
+        clean_table = []
+        for index, row in enumerate(tablename):
+            v1 = training[index]
+            v2 = training[random_index]
+            row.append(utils.compute_distance(v1[:-1],v2[:-1]))
+            clean_table.append(row)
+        clean_table.sort(key=itemgetter(-1))
+        clean_table = clean_table[:5]
+        prediction = 0
+        print(prediction_index_values)
+        max_val = max(prediction_index_values)
+        for x in range(max_val+1):
+            count = 0
+            for row in clean_table:
+                if (float(row[prediction_index])) == x:
+                    count = count + 1
+            if count > max:
+                max = count
+                prediction = x
+        actual = (random_instance[prediction_index])
+        actuals.append(actual)
+        classes.append(prediction)
+        print("instance: " + str(random_instance))
+        print("class: "+ str(prediction))
+        print("actual: "+ str(actual))
+    return actuals, classes
+
     
