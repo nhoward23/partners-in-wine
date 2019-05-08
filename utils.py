@@ -4,6 +4,8 @@ import csv
 import tabulate
 import numpy 
 import math
+import random
+import operator
 
 def write_table(header, table, filename):
     with open(filename, mode='w') as csv_file:
@@ -130,5 +132,82 @@ def compute_distance(v1, v2):
     assert(len(v1) == len(v2))
     dist = math.sqrt(sum([(v1[i] - v2[i]) ** 2 for i in range(len(v1))]))
     return dist
+
+def normalize_instances(tablename, attribute_indices):
+    #normalizes all the attributes of each index you pass in
+    pre_normalization = [[] for x in attribute_indices]
+    post_normalize = []
+    table = [[] for row in tablename]
+
+    for instance in tablename:
+        for index, attribute in enumerate(attribute_indices):
+            pre_normalization[index].append(float(instance[attribute]))
+
+    for row in pre_normalization:
+        row = normalize(row)
+        post_normalize.append(row)
+
+    for row in post_normalize:
+        for index, item in enumerate(row):
+            table[index].append(item)
+
+    return table
+
+def normalize(single_attribute_values):
+    #normalizes a list of values all of the same type of attribute
+    normalized = []
+    for x in single_attribute_values:
+        x = (x-min(single_attribute_values)) / ((max(single_attribute_values) - min(single_attribute_values)) * 1.0)
+        normalized.append(x)
+    return normalized
+
+def knn_find_top_k(tablename, training, test_number, prediction_index_values, prediction_index):
+    print("===========================================")
+    print("STEP 2: k=5 Nearest Neighbor MPG Classifier")
+    print("===========================================")
+    for i in range(test_number):
+        random_index = random.randint(0, len(tablename)-1)
+        random_instance = tablename[random_index]
+        clean_table = []
+        for index, row in enumerate(tablename):
+            v1 = training[index]
+            v2 = training[random_index]
+            new_row = row + [compute_distance(v1[:-1],v2[:-1])]
+            clean_table.append(new_row)
+        clean_table.sort(key=operator.itemgetter(-1))
+        clean_table = clean_table[:5]
+        knn_majority_vote(prediction_index_values, clean_table, prediction_index, random_instance)
+
+def knn_majority_vote(prediction_index_values, clean_table, prediction_index, random_instance):
+    prediction = 0
+    actuals = []
+    classes = []
+    max_prediction_val = max(prediction_index_values)
+    max_val = 0
+    for x in range(max_prediction_val+1):
+        count = 0
+        for row in clean_table:
+            if (float(row[prediction_index])) == x:
+                count = count + 1
+        if count > max_val:
+            max_val = count
+            prediction = x
+        actual = (random_instance[prediction_index])
+        actuals.append(actual)
+        classes.append(prediction)
+    print("instance: " + str(random_instance))
+    print("class: "+ str(prediction))
+    print("actual: "+ str(actual))
+    return actuals, classes
+
+def knn_random_subsampling(tablename, attribute_indices, prediction_index, k):
+    prediction_index_values = []
+    training = normalize_instances(tablename, attribute_indices)
+    for instance in tablename:
+        prediction_index_values.append(int(instance[prediction_index]))
+    for index, row in enumerate(training):
+        row.append(prediction_index_values[index])
+    knn_find_top_k(tablename, training, 5, prediction_index_values, prediction_index)
+    
 
     
