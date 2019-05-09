@@ -1,0 +1,2 @@
+# partners-in-wine
+This project shows a variety of classification methods over a red wine dataset that can be found here https://www.kaggle.com/uciml/redwine-quality-cortez-et-al-2009#winequality-red.csv. We also applied k means clustering to the dataset. Key functions for each method can be found in it's individual file, while general, multi-purpose functions can be found in the utils file. Our jupyter notebook contains the story of the data and how we applied these classification/clustering methods. 
