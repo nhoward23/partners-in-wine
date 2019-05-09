@@ -174,6 +174,7 @@ def normalize(single_attribute_values):
     return normalized
 
 def knn_random_subsampling(tablename, test_number, attribute_indices, classification_index, k):
+    #why does this not work
     accuracy = 0
     for _ in range(5):
         train, test = compute_holdout_partitions(tablename)
