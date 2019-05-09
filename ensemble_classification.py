@@ -23,8 +23,16 @@ def bootstrap_aggregation(table, num_class, attribute_indices, classification_in
                 correct += 1
             #knn_print(actual_classification, final_prediction, sample)
         accuracy = correct/len(test)
-        print("accuracy: "+str(accuracy))
-        print("error rate: "+str(1-accuracy))
+        accuracy_print(accuracy)
+
+
+def accuracy_print(accuracy):
+    print("============================================================================")
+    print("Predictive Accuracy of Aggregate Bootstrap Using KNN Classifiers")
+    print("============================================================================")
+    print("Bagging (k=5, 2:1 Remainder/Test")
+    print("accuracy: "+str(accuracy))
+    print("error rate: "+str(1-accuracy))
 
 def classifier_prediction(training, attribute_indices, classification_index, test, k):
     # generates a prediction for an individual classifier
