@@ -162,7 +162,7 @@ def normalize(single_attribute_values):
     return normalized
 
 def knn_random_subsampling(tablename, test_number, attribute_indices, classification_index, k):
-    classification_index_values, training = knn_create_training(tablename, attribute_indices, classification_index)
+    classification_index_values, training = knn_prep_training(tablename, attribute_indices, classification_index)
     for _ in range(test_number):
         random_index = random.randint(0, len(tablename)-1)
         random_instance = tablename[random_index]
@@ -183,11 +183,27 @@ def knn_print(actual, prediction, test):
     print("class: "+ str(prediction))
     print("actual: "+ str(actual))
 
-def ensemble_knn(training, attribute_indices, classification_index, test, k):
-    classification_index_values, new_training = knn_create_training(training, attribute_indices, classification_index)
-    count = 0
+def bootstrap_aggregation(table, num_class, attribute_indices, classification_index, min_acc, k):
+    # runs classifiers over instances in the test set to produce predictions
+    full_test = generate_test_set(table)
+    test_classifications = get_classifications(full_test, classification_index)
+    test = normalize_instances(full_test, attribute_indices)
+    training = select_approved_training_sets(table, num_class, attribute_indices, classification_index, min_acc, k)
+    predictions = []
+    for index, sample in enumerate(test):
+        for train_set in training:
+            prediction = classifier_prediction(train_set, attribute_indices, classification_index, sample, k)
+            predictions.append(prediction)
+        final_prediction = generate_majority_prediction(predictions, test_classifications)
+        full_sample = full_test[index]
+        actual_classification = full_sample[classification_index]
+        knn_print(actual_classification, final_prediction, sample)
+
+def classifier_prediction(training, attribute_indices, classification_index, test, k):
+    # generates a prediction for an individual classifier
+    classification_index_values, new_training = knn_prep_training(training, attribute_indices, classification_index)
     clean_table = []
-    for index, row in enumerate(training):
+    for index, _ in enumerate(training):
         v1 = new_training[index]
         v2 = test
         new_row = training[index] + [compute_distance(v1[:-1],v2)]
@@ -197,22 +213,8 @@ def ensemble_knn(training, attribute_indices, classification_index, test, k):
     prediction = knn_majority_vote(classification_index_values, clean_table, classification_index)
     return prediction
 
-def bootstrap_aggregation(table, num_class, attribute_indices, classification_index, min_acc, k):
-    full_test = generate_test_set(table)
-    test_classifications = get_classifications(full_test, classification_index)
-    test = normalize_instances(full_test, attribute_indices)
-    training = select_approved_training_sets(table, num_class, attribute_indices, classification_index, min_acc, k)
-    predictions = []
-    for index, sample in enumerate(test):
-        for train_set in training:
-            prediction = ensemble_knn(train_set, attribute_indices, classification_index, sample, k)
-            predictions.append(prediction)
-        final_prediction = generate_majority_prediction(predictions, test_classifications)
-        full_sample = full_test[index]
-        actual_classification = full_sample[classification_index]
-        knn_print(actual_classification, final_prediction, sample)
-
 def select_approved_training_sets(table, num_class, attribute_indices, classification_index, min_acc, k):
+    # uses accuracy results of each training set to select only the ones that meet minimum accuracy constraints
     ensemble_train = []
     for _ in range(num_class+1):
         training, validation = bagging(table)
@@ -222,6 +224,7 @@ def select_approved_training_sets(table, num_class, attribute_indices, classific
     return ensemble_train
 
 def ensemble_performance(training, validation, attribute_indices, classification_index, k):
+    # measures the performance of a training set against a validation set
     partial_validation = normalize_instances(validation, attribute_indices)
     total = 0
     correct = 0
@@ -236,6 +239,7 @@ def ensemble_performance(training, validation, attribute_indices, classification
     return accuracy
 
 def generate_majority_prediction(predictions, test_classifications):
+    # generates a majority vote prediction given a list of predictions of a classifier
     prediction = 0
     max_classification_val = max(test_classifications)
     max_val = 0
@@ -293,7 +297,7 @@ def knn_majority_vote(classification_index_values, clean_table, classification_i
             prediction = x
     return prediction
 
-def knn_create_training(tablename, attribute_indices, classification_index):
+def knn_prep_training(tablename, attribute_indices, classification_index):
     classification_index_values = get_classifications(tablename, classification_index)
     training = normalize_instances(tablename, attribute_indices)
     for index, row in enumerate(training):
