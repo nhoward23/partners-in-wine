@@ -27,6 +27,18 @@ def read_table(filename):
             table.append(row)
     return table
 
+def compute_holdout_partitions(table):
+    # randomize the table
+    randomized = table[:] # copy the table
+    n = len(table)
+    for i in range(n):
+        # pick an index to swap
+        j = random.randrange(0, n) # random int in [0,n) 
+        randomized[i], randomized[j] = randomized[j], randomized[i]
+    # return train and test sets
+    split_index = int(2 / 3 * n) # 2/3 of randomized table is train, 1/3 is test
+    return randomized[0:split_index], randomized[split_index:]
+
 def convert_to_numeric(values):
     """Converts the numerical data types to floats in your data set"""
     for i in range(len(values)):
@@ -162,91 +174,34 @@ def normalize(single_attribute_values):
     return normalized
 
 def knn_random_subsampling(tablename, test_number, attribute_indices, classification_index, k):
-    classification_index_values, training = knn_prep_training(tablename, attribute_indices, classification_index)
-    for _ in range(test_number):
-        random_index = random.randint(0, len(tablename)-1)
-        random_instance = tablename[random_index]
-        clean_table = []
-        for index, row in enumerate(tablename):
-            v1 = training[index]
-            v2 = training[random_index]
-            new_row = row + [compute_distance(v1[:-1],v2[:-1])]
-            clean_table.append(new_row)
-        clean_table.sort(key=operator.itemgetter(-1))
-        clean_table = clean_table[:k]
-        prediction = knn_majority_vote(classification_index_values, clean_table, classification_index)
-        actual = random_instance[-1:]
-        knn_print(actual, prediction, random_instance)
+    accuracy = 0
+    for _ in range(5):
+        train, test = compute_holdout_partitions(tablename)
+        training_classification_index_values, training = knn_prep_training(train, attribute_indices, classification_index)
+        testing_classification_index_values, testing = knn_prep_training(test, attribute_indices, classification_index)
+        correct = 0
+        for i, instance in enumerate(testing):
+            clean_table = []
+            for index, row in enumerate(training):
+                v1 = row
+                v2 = instance
+                new_row = train[index] + [compute_distance(v1[:-1],v2[:-1])]
+                clean_table.append(new_row)
+            clean_table.sort(key=operator.itemgetter(-1))
+            clean_table = clean_table[:k]
+            prediction = knn_majority_vote(training_classification_index_values, clean_table, classification_index)
+            actual = testing_classification_index_values[i]
+            if (actual == prediction):
+                correct += 1
+        accuracy += (correct / len(test))
+    accuracy = accuracy / 5
+    print("accuracy: "+str(accuracy))
+    print("error rate: "+str(1-accuracy))
 
 def knn_print(actual, prediction, test):
     print("instance: " + str(test))
     print("class: "+ str(prediction))
     print("actual: "+ str(actual))
-
-def bootstrap_aggregation(table, num_class, attribute_indices, classification_index, min_acc, k):
-    # runs classifiers over instances in the test set to produce predictions
-    full_test = generate_test_set(table)
-    test_classifications = get_classifications(full_test, classification_index)
-    test = normalize_instances(full_test, attribute_indices)
-    training, accuracies = select_approved_training_sets(table, num_class, attribute_indices, classification_index, min_acc, k)
-    correct = 0
-    if(len(training) == 0):
-        print("ensemble is empty")
-    else:
-        for index, sample in enumerate(test):
-            for train_set in training:
-                predictions = []
-                prediction = classifier_prediction(train_set, attribute_indices, classification_index, sample, k)
-                predictions.append(prediction)
-            final_prediction = generate_weighted_majority_prediction(predictions, accuracies, test_classifications)
-            full_sample = full_test[index]
-            actual_classification = full_sample[classification_index]
-            if (final_prediction == actual_classification):
-                correct += 1
-            #knn_print(actual_classification, final_prediction, sample)
-        accuracy = correct/len(test)
-        print("accuracy: "+str(accuracy))
-
-def classifier_prediction(training, attribute_indices, classification_index, test, k):
-    # generates a prediction for an individual classifier
-    classification_index_values, new_training = knn_prep_training(training, attribute_indices, classification_index)
-    clean_table = []
-    for index, _ in enumerate(training):
-        v1 = new_training[index]
-        v2 = test
-        new_row = training[index] + [compute_distance(v1[:-1],v2)]
-        clean_table.append(new_row)
-    clean_table.sort(key=operator.itemgetter(-1))
-    clean_table = clean_table[:k]
-    prediction = knn_majority_vote(classification_index_values, clean_table, classification_index)
-    return prediction
-
-def select_approved_training_sets(table, num_class, attribute_indices, classification_index, min_acc, k):
-    # uses accuracy results of each training set to select only the ones that meet minimum accuracy constraints
-    ensemble_train = []
-    ensemble_accuracy = []
-    for _ in range(num_class+1):
-        training, validation = bagging(table)
-        accuracy = ensemble_performance(training, validation, attribute_indices, classification_index, k)
-        if accuracy >= min_acc:
-            ensemble_train.append(training)
-            ensemble_accuracy.append(accuracy)
-    return ensemble_train, ensemble_accuracy
-
-def ensemble_performance(training, validation, attribute_indices, classification_index, k):
-    # measures the performance of a training set against a validation set
-    partial_validation = normalize_instances(validation, attribute_indices)
-    total = 0
-    correct = 0
-    for index, line in enumerate(partial_validation):
-        prediction = classifier_prediction(training, attribute_indices, classification_index, line, k)
-        full_line = validation[index]
-        actual_classification = full_line[classification_index]
-        total += 1
-        if prediction == actual_classification:
-            correct += 1
-    accuracy = correct/total
-    return accuracy
 
 def generate_majority_prediction(predictions, test_classifications):
     # generates a majority vote prediction given a list of predictions of a classifier
