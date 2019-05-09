@@ -198,7 +198,7 @@ def knn_random_subsampling(tablename, test_number, attribute_indices, classifica
     accuracy = accuracy / 5
     print("accuracy: "+str(accuracy))
     print("error rate: "+str(1-accuracy))
-
+    
 def knn_print(actual, prediction, test):
     print("instance: " + str(test))
     print("class: "+ str(prediction))
