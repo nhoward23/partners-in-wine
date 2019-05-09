@@ -8,7 +8,7 @@ def main():
     table = utils.read_table('red_wine_quality.csv')
     header = table[0]
     data = table[1:100]
-    utils.knn_random_subsampling(data, 5, [3, 7, 10], 11, 10)
+    utils.knn_random_subsampling(data, 5, [0, 3, 5, 6], 11, 10)
     #es.bootstrap_aggregation(data, 20, [3, 7, 10], 11, .7, 5)
 
 if __name__ == "__main__":
