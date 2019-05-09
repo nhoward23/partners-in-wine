@@ -188,16 +188,24 @@ def bootstrap_aggregation(table, num_class, attribute_indices, classification_in
     full_test = generate_test_set(table)
     test_classifications = get_classifications(full_test, classification_index)
     test = normalize_instances(full_test, attribute_indices)
-    training = select_approved_training_sets(table, num_class, attribute_indices, classification_index, min_acc, k)
-    predictions = []
-    for index, sample in enumerate(test):
-        for train_set in training:
-            prediction = classifier_prediction(train_set, attribute_indices, classification_index, sample, k)
-            predictions.append(prediction)
-        final_prediction = generate_majority_prediction(predictions, test_classifications)
-        full_sample = full_test[index]
-        actual_classification = full_sample[classification_index]
-        knn_print(actual_classification, final_prediction, sample)
+    training, accuracies = select_approved_training_sets(table, num_class, attribute_indices, classification_index, min_acc, k)
+    correct = 0
+    if(len(training) == 0):
+        print("ensemble is empty")
+    else:
+        for index, sample in enumerate(test):
+            for train_set in training:
+                predictions = []
+                prediction = classifier_prediction(train_set, attribute_indices, classification_index, sample, k)
+                predictions.append(prediction)
+            final_prediction = generate_weighted_majority_prediction(predictions, accuracies, test_classifications)
+            full_sample = full_test[index]
+            actual_classification = full_sample[classification_index]
+            if (final_prediction == actual_classification):
+                correct += 1
+            #knn_print(actual_classification, final_prediction, sample)
+        accuracy = correct/len(test)
+        print("accuracy: "+str(accuracy))
 
 def classifier_prediction(training, attribute_indices, classification_index, test, k):
     # generates a prediction for an individual classifier
@@ -216,12 +224,14 @@ def classifier_prediction(training, attribute_indices, classification_index, tes
 def select_approved_training_sets(table, num_class, attribute_indices, classification_index, min_acc, k):
     # uses accuracy results of each training set to select only the ones that meet minimum accuracy constraints
     ensemble_train = []
+    ensemble_accuracy = []
     for _ in range(num_class+1):
         training, validation = bagging(table)
-        ensemble_accuracy = ensemble_performance(training, validation, attribute_indices, classification_index, k)
-        if ensemble_accuracy >= min_acc:
+        accuracy = ensemble_performance(training, validation, attribute_indices, classification_index, k)
+        if accuracy >= min_acc:
             ensemble_train.append(training)
-    return ensemble_train
+            ensemble_accuracy.append(accuracy)
+    return ensemble_train, ensemble_accuracy
 
 def ensemble_performance(training, validation, attribute_indices, classification_index, k):
     # measures the performance of a training set against a validation set
@@ -229,7 +239,7 @@ def ensemble_performance(training, validation, attribute_indices, classification
     total = 0
     correct = 0
     for index, line in enumerate(partial_validation):
-        prediction = ensemble_knn(training, attribute_indices, classification_index, line, k)
+        prediction = classifier_prediction(training, attribute_indices, classification_index, line, k)
         full_line = validation[index]
         actual_classification = full_line[classification_index]
         total += 1
@@ -248,6 +258,22 @@ def generate_majority_prediction(predictions, test_classifications):
         for prediction in predictions:
             if prediction == x:
                 count = count + 1
+        if count > max_val:
+            max_val = count
+            prediction = x
+    return prediction
+
+
+def generate_weighted_majority_prediction(predictions, accuracies, test_classifications):
+    # generates a weighted majority vote prediction given a list of predictions of a classifier and that classifiers accuracy
+    prediction = 0
+    max_classification_val = max(test_classifications)
+    max_val = 0
+    for x in range(max_classification_val+1):
+        count = 0
+        for index, prediction in enumerate(predictions):
+            if prediction == x:
+                count = count + accuracies[index]
         if count > max_val:
             max_val = count
             prediction = x
