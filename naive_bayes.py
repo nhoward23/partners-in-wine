@@ -214,7 +214,7 @@ def compute_accuracy(table, index, predicted, actual):
             accuracies.append(accuracy)
             
     # get the average of accuracies
-    print('accuracies', accuracies)
+    # print('accuracies', accuracies)
     avg_accuracy = sum(accuracies)/len(accuracies)
-    print('avg acc', avg_accuracy)
+    # print('avg acc', avg_accuracy)
     return avg_accuracy

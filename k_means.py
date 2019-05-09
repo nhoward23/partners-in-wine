@@ -114,7 +114,7 @@ def objective_function(table, cluster_table, centroids):
             distance = compute_distance(row, centroids[row[cluster_index]])
             distances.append(distance)
         total_cluster_score += sum(distances)
-    print(total_cluster_score)
+    # print(total_cluster_score)
     return total_cluster_score
 
     
@@ -209,8 +209,8 @@ def predict(random_instance, centroids, clusters, classification_index):
     cluster_index = distances.index(min(distances))
     
     majority_classification = majority_voting(clusters[cluster_index], classification_index)
-    print("Random Instance: ", random_instance)
-    print("Majority Classification: ", majority_classification)
+#     print("Random Instance: ", random_instance)
+#     print("Majority Classification: ", majority_classification)
     return majority_classification
 
 def k_means_classifier(train_set, test_set, class_index, centroids, clusters):
@@ -245,12 +245,12 @@ def random_subsampling(k, table, class_index, centroids, clusters):
             cluster_table[i].append(distances_table[i][-1])
         # group by cluster 
         group_names, groups = utils.group_by(cluster_table, len(cluster_table[0])-1)
-        print(groups)
+        # print(groups)
 
         # classify the test set by using naive bayes
         naive_predictions, naive_actuals = k_means_classifier(train_set, test_set, class_index, centroids, clusters)
-        print(naive_predictions)
-        print(naive_accuracies)
+        # print(naive_predictions)
+        # print(naive_accuracies)
 
         # compute the accuracy of predictions for naive bayes
         naive_accuracy = compute_accuracy(train_set, class_index, naive_predictions, naive_actuals)
